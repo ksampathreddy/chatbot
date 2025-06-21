@@ -1,0 +1,94 @@
+<script>
+// Show initial message bubble
+setTimeout(() => {
+    document.getElementById('chat-text-box').style.display = 'block';
+    setTimeout(() => {
+        document.getElementById('chat-text-box').style.display = 'none';
+    }, 3000);
+}, 2000);
+
+// Toggle chat visibility
+function toggleChatbox() {
+    const chatbox = document.getElementById('chatbox');
+    if (chatbox.style.display === 'none' || !chatbox.style.display) {
+        chatbox.style.display = 'flex';
+        displayGreeting();
+    } else {
+        chatbox.style.display = 'none';
+    }
+}
+
+// Greet based on time
+function displayGreeting() {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Good Morning!" : hour < 18 ? "Good Afternoon!" : "Good Evening!";
+    addMessage(`<strong>DRK Assistant:</strong> ${greeting}`, 'bot');
+    addMessage("<strong>DRK Assistant:</strong> How can I assist you today?", 'bot');
+}
+
+// Add message to chat UI
+function addMessage(text, sender) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+    
+    // Use innerHTML to render bold tags
+    messageDiv.innerHTML = text;
+
+    // Handle line breaks for bot messages
+    if (sender === 'bot') {
+        const brCount = (text.match(/<br>/g) || []).length;
+        if (brCount > 0) {
+            const parts = text.split('<br>');
+            messageDiv.innerHTML = parts.join('<br>');
+        }
+    }
+
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Button click triggers
+function selectOption(option) {
+    addMessage(`<strong>You:</strong> ${option}`, 'user');
+    sendToBackend(option);
+}
+
+// Send message to Python backend
+function sendToBackend(message) {
+    fetch('/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({message: message}),
+    })
+    .then(response => response.json())
+    .then(data => {
+        addMessage(`<strong>DRK Assistant:</strong> ${data.response}`, 'bot');
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        addMessage("<strong>DRK Assistant:</strong> I'm having trouble connecting to the server. Please try again later.", 'bot');
+    });
+}
+
+// Handle send
+function sendMessage() {
+    const inputBox = document.getElementById('input-box');
+    const message = inputBox.value.trim();
+    if (message) {
+        addMessage(`<strong>You:</strong> ${message}`, 'user');
+        inputBox.value = '';
+        sendToBackend(message);
+    }
+}
+
+// Enter key triggers send
+document.getElementById('input-box').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') sendMessage();
+});
+
+// Hide chat initially
+document.getElementById('chatbox').style.display = 'none';
+</script>
